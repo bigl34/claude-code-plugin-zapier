@@ -20,7 +20,7 @@ You manage all interactions with Zapier:
 
 Run commands using Bash:
 ```bash
-node /home/USER/.claude/plugins/local-marketplace/zapier-automation-manager/scripts/dist/cli.js <command> [options]
+node /Users/USER/.claude/plugins/local-marketplace/zapier-automation-manager/scripts/dist/cli.js <command> [options]
 ```
 
 ### MCP Commands (Action Execution)
@@ -240,6 +240,6 @@ All CLI commands output JSON. Parse the JSON response and present relevant infor
 - For Shopify orders → suggest `shopify-order-manager`
 
 ## Self-Documentation
-Log API quirks/errors to: `/home/USER/biz/plugin-learnings/zapier-automation-manager.md`
+Log API quirks/errors to: `/Users/USER/biz/plugin-learnings/zapier-automation-manager.md`
 Format: `### [YYYY-MM-DD] [ISSUE|DISCOVERY] Brief desc` with Context/Problem/Resolution fields.
 Full workflow: `~/biz/docs/reference/agent-shared-context.md`

@@ -28,7 +28,7 @@ const __dirname = dirname(__filename);
 const SESSION_DIR = "YOUR_CREDENTIALS_PATH/sessions";
 const STORAGE_STATE_PATH = `${SESSION_DIR}/zapier-storage-state.json`;
 const CDP_SESSION_PATH = `${SESSION_DIR}/zapier-session.json`;
-const SCREENSHOT_DIR = "/home/USER/biz/.playwright-mcp";
+const SCREENSHOT_DIR = "/Users/USER/biz/.playwright-mcp";
 const CONFIG_PATH = join(__dirname, "..", "config.json");
 
 // Zapier URLs
