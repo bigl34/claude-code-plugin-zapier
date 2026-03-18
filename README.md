@@ -3,7 +3,7 @@
 
 Zapier automation actions + Zap management via browser automation
 
-![Version](https://img.shields.io/badge/version-1.3.0-blue) ![License: MIT](https://img.shields.io/badge/License-MIT-green) ![Node >= 18](https://img.shields.io/badge/node-%3E%3D18-brightgreen)
+![Version](https://img.shields.io/badge/version-1.3.1-blue) ![License: MIT](https://img.shields.io/badge/License-MIT-green) ![Node >= 18](https://img.shields.io/badge/node-%3E%3D18-brightgreen)
 
 ## Features
 
@@ -32,7 +32,7 @@ Zapier automation actions + Zap management via browser automation
 ## Quick Start
 
 ```bash
-git clone https://github.com/YOUR_GITHUB_USER/claude-code-plugin-zapier.git
+git clone https://github.com/bigl34/claude-code-plugin-zapier.git
 cd claude-code-plugin-zapier
 cp config.template.json config.json  # fill in your credentials
 cd scripts && npm install
