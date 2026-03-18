@@ -18,6 +18,7 @@
 
 import { chromium, Browser, Page, BrowserContext } from "playwright";
 import { existsSync, readFileSync, writeFileSync, unlinkSync, mkdirSync } from "fs";
+import { execSync } from "child_process";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 
@@ -25,10 +26,12 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 // Paths — session data on tmpfs (RAM), never on disk
-const SESSION_DIR = "YOUR_CREDENTIALS_PATH/sessions";
+const SESSION_DIR = process.platform === "darwin"
+  ? "YOUR_CREDENTIALS_PATH/sessions"
+  : "YOUR_CREDENTIALS_PATH/sessions";
 const STORAGE_STATE_PATH = `${SESSION_DIR}/zapier-storage-state.json`;
 const CDP_SESSION_PATH = `${SESSION_DIR}/zapier-session.json`;
-const SCREENSHOT_DIR = "/Users/USER/biz/.playwright-mcp";
+const SCREENSHOT_DIR = process.env.HOME + "/biz/.playwright-mcp";
 const CONFIG_PATH = join(__dirname, "..", "config.json");
 
 // Zapier URLs
@@ -403,20 +406,81 @@ export class ZapierBrowserClient {
         const tfaScreenshot = `${SCREENSHOT_DIR}/zapier-2fa-${Date.now()}.png`;
         await page.screenshot({ path: tfaScreenshot, fullPage: true });
 
+        // Try auto-fill OTP from pass
+        try {
+          const otp = execSync("pass otp claude-plugins/zapier/totp", {
+            timeout: 5000,
+            encoding: "utf-8",
+          }).trim();
+
+          if (this.debug) console.error(`[debug] OTP generated from pass: ${otp}`);
+
+          // Find the OTP input field
+          const otpSelectors = [
+            'input[name*="code" i]',
+            'input[name*="otp" i]',
+            'input[name*="token" i]',
+            'input[type="tel"]',
+            'input[inputmode="numeric"]',
+            'input[autocomplete="one-time-code"]',
+            'input[placeholder*="code" i]',
+            'input[placeholder*="digit" i]',
+          ];
+
+          let otpField = null;
+          for (const selector of otpSelectors) {
+            try {
+              otpField = await page.waitForSelector(selector, { state: "visible", timeout: 5000 });
+              if (otpField) break;
+            } catch { continue; }
+          }
+
+          if (otpField) {
+            await otpField.fill(otp);
+            if (this.debug) console.error("[debug] OTP filled");
+
+            // Submit the OTP
+            const submitBtn = await page.$('button[type="submit"], button:has-text("Verify"), button:has-text("Continue"), button:has-text("Submit"), button:has-text("Confirm")');
+            if (submitBtn) {
+              await submitBtn.click();
+              if (this.debug) console.error("[debug] OTP submit clicked");
+            } else {
+              await otpField.press("Enter");
+              if (this.debug) console.error("[debug] Enter pressed on OTP field");
+            }
+
+            // Wait for navigation past login
+            try {
+              await page.waitForURL(/zapier\.com\/app\/(?!login)/, { timeout: 30000 });
+              await this.saveStorageState();
+              if (this.debug) console.error("[debug] 2FA completed via pass OTP");
+              return;
+            } catch {
+              const postOtpScreenshot = `${SCREENSHOT_DIR}/zapier-2fa-post-otp-${Date.now()}.png`;
+              await page.screenshot({ path: postOtpScreenshot, fullPage: true });
+              throw new Error(`OTP submitted but login did not complete. Screenshot: ${postOtpScreenshot}`);
+            }
+          } else {
+            if (this.debug) console.error("[debug] Could not find OTP input field");
+          }
+        } catch (otpError: any) {
+          if (this.debug) console.error(`[debug] Auto OTP failed: ${otpError.message}`);
+        }
+
+        // Fallback: manual 2FA in debug mode
         if (this.debug) {
-          // In debug mode, wait for user to complete 2FA manually
           console.error("[debug] 2FA/auth code detected — complete it in the browser window. Waiting up to 120s...");
           try {
             await page.waitForURL(/zapier\.com\/app\/(?!login)/, { timeout: 120000 });
             await this.saveStorageState();
-            return; // 2FA completed successfully
+            return;
           } catch {
             throw new Error(`2FA not completed within 120s. Screenshot: ${tfaScreenshot}`);
           }
         }
 
         throw new Error(
-          `2FA required. Screenshot: ${tfaScreenshot}. ` +
+          `2FA required and auto-OTP failed. Screenshot: ${tfaScreenshot}. ` +
           "Run with --debug flag and complete 2FA manually, then retry."
         );
       }
